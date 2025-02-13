@@ -56,6 +56,7 @@ class Boss(GameEntity):
                 else:
                     hero.health -= self.damage
 
+
     def __str__(self):
         return 'BOSS ' + super().__str__() + f' defence: {self.__defence}'
 
@@ -89,10 +90,20 @@ class Warrior(Hero):
 class Magic(Hero):
     def __init__(self, name, health, damage):
         super().__init__(name, health, damage, 'BOOST')
+        self.__boost_amount = 5
 
     def apply_super_power(self, boss, heroes):
-        # TODO Here will be implementation of boosting
-        pass
+        global round_number
+        if round_number <= 4:
+            for hero in heroes:
+                if hero.health > 0 and type(hero) != Witcher and type(hero) != Hacker:
+                    hero.damage += self.__boost_amount
+            print(f'Magic {self.name} boosted all heroes damage by {self.__boost_amount}')
+        # else:
+        #     for hero in heroes:
+        #         if hero.health > 0:
+        #             # TODO return initial value
+        #             pass
 
 
 class Berserk(Hero):
@@ -122,6 +133,61 @@ class Medic(Hero):
         for hero in heroes:
             if hero.health > 0 and self != hero:
                 hero.health += self.__heal_points
+
+
+class Witcher(Hero):
+    def __init__(self, name, health, damage):
+        super().__init__(name, health, damage, "REVIVE")
+        self.__has_revived = False
+
+    def apply_super_power(self, boss, heroes):
+        if self.health > 0 and not self.__has_revived:
+            for hero in heroes:
+                if hero.health <= 0:
+                    hero.health = self.health
+                    self.health = 0
+                    self.__has_revived = True
+                    print(f"Witcher {self.name} revived {hero.name} and sacrificed himself.")
+                    break
+                    
+                    
+class Hacker(Hero):
+    def __init__(self, name, health, damage, steal_amount):
+        super().__init__(name, health, damage, "HACK")
+        self.__steal_amount = steal_amount
+
+    def apply_super_power(self, boss, heroes):
+        global round_number
+        if round_number % 2 == 0 and boss.health > 0:
+            alive_heroes = [hero for hero in heroes if hero.health > 0]
+            if alive_heroes:
+                target_hero = choice(alive_heroes)
+                boss.health -= self.__steal_amount
+                target_hero.health += self.__steal_amount
+                print(f"Hacker {self.name} stole {self.__steal_amount} health from the boss and "
+                      f"gave it to {target_hero.name}.")
+                
+                
+class Spitfire(Hero):
+    def __init__(self, name, health, damage):
+        super().__init__(name, health, damage, "AGGRESSION")
+
+    def apply_super_power(self, boss, heroes):
+        alive_before = sum(hero.health > 0 for hero in heroes)
+        boss.attack(heroes)
+        if sum(hero.health > 0 for hero in heroes) < alive_before:
+            boss.health -= 80
+            print(f"Spitfire {self.name} is furious! Deals 80 extra damage to the boss.")
+
+
+class Bomber(Hero):
+    def __init__(self, name, health, damage):
+        super().__init__(name, health, damage, "EXPLOSION")
+
+    def apply_super_power(self, boss, heroes):
+        if self.health < 0:
+            boss.health -= 100
+            print(f"Bomber {self.name} exploded! Deals 100 extra damage to the boss.")
 
 
 round_number = 0
@@ -167,10 +233,14 @@ def start_game():
     warrior_2 = Warrior('Kon', 270, 15)
     magic = Magic('Mag', 290, 15)
     berserk = Berserk('Mars', 260, 15)
-    doc = Medic('Doc', 250, 5, 15)
+    doc = Medic('Doc', 280, 5, 15)
     assistant = Medic('Junior', 300, 5, 5)
+    witcher = Witcher('Geralt', 300, 0)
+    hacker = Hacker('Jim', 300, 0, 10)
+    spitfire = Spitfire('Blaze', 250, 5)
+    bomber = Bomber('Bob', 250, 5)
 
-    heroes_list = [warrior_1, doc, warrior_2, magic, berserk, assistant]
+    heroes_list = [warrior_1, doc, warrior_2, magic, berserk, assistant, witcher, hacker, spitfire, bomber]
 
     show_statistics(boss, heroes_list)
     while not is_game_over(boss, heroes_list):
